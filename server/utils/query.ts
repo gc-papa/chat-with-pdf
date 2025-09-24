@@ -1,6 +1,9 @@
 import type { RoleScopedChatInput } from '@cloudflare/workers-types'
 import { inArray, sql } from 'drizzle-orm'
 
+import { getVectorStore } from './local-services'
+import { vertexAI } from './vertex-ai'
+
 async function rewriteToQueries(content: string): Promise<string[]> {
   const prompt = `Given the following user message, rewrite it into 5 distinct queries that could be used to search for relevant information. Each query should focus on different aspects or potential interpretations of the original message. No questions, just a query maximizing the chance of finding relevant information.
 
@@ -8,8 +11,8 @@ User message: "${content}"
 
 Provide 5 queries, one per line and nothing else:`
 
-  const ai = await hubAI()
-  const { response } = await ai.run('@cf/meta/llama-3.1-8b-instruct', { prompt }) as { response: string }
+  const ai = await vertexAI()
+  const { response } = await ai.run(undefined, { messages: [{ role: 'user', content: prompt }] }) as { response: string }
 
   const regex = /^\d+\.\s*"|"$/gm
   const queries = response
@@ -83,12 +86,12 @@ function performReciprocalRankFusion(
 const SYSTEM_MESSAGE = `You are a helpful assistant that answers questions based on the provided context. When giving a response, always include the source of the information in the format [1], [2], [3] etc.`
 
 async function queryVectorIndex(queries: string[], sessionId: string) {
-  const ai = await hubAI()
+  const ai = await vertexAI()
   const queryVectors = await Promise.all(
-    queries.map(q => ai.run('@cf/baai/bge-large-en-v1.5', { text: [q] })),
+    queries.map(q => ai.run(process.env.VERTEX_EMBED_MODEL, { text: [q] })),
   )
 
-  const vectorApi = await hubVectorize('documents')
+  const vectorApi = await getVectorStore('documents')
   const allResults = await Promise.all(
     queryVectors.map(qv =>
       vectorApi.query(qv.data[0], {

@@ -1,5 +1,8 @@
 import { getDocumentProxy, extractText } from 'unpdf'
 
+import { getBlobStore, getVectorStore } from './local-services'
+import { vertexAI } from './vertex-ai'
+
 // Simple helper to validate blob/file inputs in LOCAL mode
 export function ensureBlob(file: any, opts: { maxSize?: string, types?: string[] } = {}) {
   if (!file) throw new Error('No file')
@@ -23,7 +26,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
 }
 
 export async function uploadPDF(file: File, sessionId: string): Promise<string> {
-  const blobApi = await hubBlob()
+  const blobApi = await getBlobStore()
   const blob = await blobApi.put(`${Date.now()}-${file.name}`, file, { prefix: sessionId })
   return blob.pathname
 }
@@ -49,6 +52,8 @@ export async function processVectors(
 ) {
   const chunkSize = 10
   let progress = 0
+  const ai = await vertexAI()
+  const vectorApi = await getVectorStore('documents')
 
   await Promise.all(
     Array.from({ length: Math.ceil(chunks.length / chunkSize) }, async (_, index) => {
@@ -56,8 +61,7 @@ export async function processVectors(
       const chunkBatch = chunks.slice(start, start + chunkSize)
 
       // Generate embeddings for the current batch
-      const ai = await hubAI()
-      const embeddingResult = await ai.run('@cf/baai/bge-large-en-v1.5', {
+      const embeddingResult = await ai.run(process.env.VERTEX_EMBED_MODEL, {
         text: chunkBatch,
       })
       const embeddingBatch: number[][] = embeddingResult.data
@@ -78,9 +82,8 @@ export async function processVectors(
       // Extract the inserted chunk IDs
       const chunkIds = chunkInsertResults.map(result => result.insertedChunkId)
 
-  // Insert vectors into Vectorize index
-  const vectorApi = await hubVectorize('documents')
-  await vectorApi.insert(
+      // Insert vectors into the vector store
+      await vectorApi.insert(
         embeddingBatch.map((embedding, i) => ({
           id: chunkIds[i],
           values: embedding,
