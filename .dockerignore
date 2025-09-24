@@ -1,0 +1,8 @@
+node_modules
+pnpm-lock.yaml
+.git
+.gitignore
+dist
+coverage
+.output/node_modules
+*.log
