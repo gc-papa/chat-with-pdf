@@ -24,14 +24,8 @@ Ready to create? Visit [chat-with-pdf.nuxt.dev](https://chat-with-pdf.nuxt.dev) 
 - [Nuxt UI](https://github.com/nuxt/ui) - Beautiful UI library with TailwindCSS
 - [Drizzle ORM](https://orm.drizzle.team/) - Powerful modern TypeScript ORM
 - [unpdf](https://github.com/unjs/unpdf) - Platform-agnostic version of [PDF.js](https://github.com/mozilla/pdf.js) for serverless environments
-- [NuxtHub Rate Limit](https://github.com/fayazara/nuxthub-ratelimit) - Ratelimiting requests
-- [NuxtHub](https://hub.nuxt.com) - Build & deploy to your Cloudflare account with zero configuration
-  - [`hubBlob()`](https://hub.nuxt.com/docs/features/blob) to store PDFs in Cloudflare R2
-  - [`hubDatabase()`](https://hub.nuxt.com/docs/features/blob) to store document chunks and full-text search on Cloudflare D1
-  - [`hubAI()`](https://hub.nuxt.com/docs/features/ai) to run Cloudflare AI models for LLM chat and generating text embeddings
-  - [`hubVectorize()`](https://hub.nuxt.com/docs/features/ai) to find relevant document context in Cloudflare Vectorize
-  - [`hubKV()`](https://hub.nuxt.com/docs/features/ai) for IP ratelimiting
-- [`npx nuxthub deploy`](https://github.com/nuxt-hub/cli) - To deploy the app on your Cloudflare account for free
+- [Google Vertex AI](https://cloud.google.com/vertex-ai) - Gemini models for chat rewriting and document Q&A, text-embedding-004 for dense retrieval
+- Local blob + vector storage layers that persist data under `./local-storage`
 
 ## 🏎️ How does it work?
 
@@ -54,11 +48,10 @@ The way it works is this:
     ```bash
     npm install
     ```
-2. Create & link a NuxtHub project to enable running AI models on your Cloudflare account
-    ```bash
-    npx nuxthub link
-    ```
-4. Launch the dev server
+2. Configure Google Cloud credentials so the server can call Vertex AI. You can either:
+    - point `GOOGLE_APPLICATION_CREDENTIALS` to a service account JSON file, or
+    - run `gcloud auth application-default login` and set `GCP_PROJECT_ID` / `GCP_LOCATION`.
+3. Launch the dev server
     ```bash
     npm run dev
     ```
@@ -71,7 +64,7 @@ This repository is configured to run fully locally. To get started:
 
 ```bash
 cp .env.example .env
-# edit .env to set OPENAI_API_KEY if you want OpenAI for local AI
+# edit .env to set GOOGLE_APPLICATION_CREDENTIALS/GCP_PROJECT_ID or rely on ADC
 npm install
 npm run dev
 ```

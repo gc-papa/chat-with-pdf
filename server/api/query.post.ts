@@ -2,6 +2,8 @@
 import consola from 'consola'
 import { z } from 'zod'
 
+import { vertexAI } from '../utils/vertex-ai'
+
 const schema = z.object({
   messages: z.array(
     z.object({
@@ -20,7 +22,7 @@ export default defineEventHandler(async (event) => {
   event.waitUntil((async () => {
     try {
       const params = await processUserQuery({ messages, sessionId }, streamResponse)
-      const ai = await hubAI()
+      const ai = await vertexAI()
 
       // Request a streaming response when available. Local adapters may
       // return a non-iterable result (synchronous object) — handle both
@@ -29,7 +31,7 @@ export default defineEventHandler(async (event) => {
   // AsyncIterable/ReadableStream vs plain object). Treat `result` as any
   // here and perform runtime checks.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = await ai.run('@cf/meta/llama-3.1-8b-instruct', { messages: params.messages, stream: true })
+  const result: any = await ai.run(process.env.VERTEX_CHAT_MODEL, { messages: params.messages, stream: true })
 
   // If result is an async iterable (for-await-able), stream it
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
